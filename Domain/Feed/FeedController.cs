@@ -11,7 +11,7 @@ public static class Controller
         {
             return Enumerable.Range(1, 5).Select(index =>
                 {
-                    return new Feed(
+                    return new FeedDto(
                                     "Your RSS feed",
                                     "https://localhost"
                             );
@@ -23,7 +23,7 @@ public static class Controller
             [Required(ErrorMessage = "Invalid id")] int id
             ) =>
         {
-                    return new Feed(
+                    return new FeedDto(
                                     "Your RSS feed" + id,
                                     "https://localhost"
                             );
