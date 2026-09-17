@@ -3,7 +3,7 @@ using Api.Domain.Feed;
 
 public class AppContext : DbContext
 {
-    public required DbSet<Feed> Feeds { get; set; }
+    public DbSet<Feed> Feeds { get; set; }
 
     public string DbPath { get; }
 

@@ -1,6 +1,6 @@
 using Scalar.AspNetCore;
 using Api.Domain.Feed;
-using Microsoft.AspNetCore.Diagnostics;
+using Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,27 +8,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+// Add validation to minimal api endpoints via service extension: https://learn.microsoft.com/en-us/aspnet/core/fundamentals/validation?view=aspnetcore-10.0
+// Needs to be done like if endpoint mappings are not in the same assembly where 'AddValidation' is called
+builder.Services.AddApiValidation();
+
 // Configure exceptions
 builder.Services.AddProblemDetails();
 
+builder.Services.AddDbContext<AppContext>();
+
 var app = builder.Build();
 
-// Show better status on request errors
-// app.UseStatusCodePages(async statusCodeContext 
-//     => await Results.Problem(statusCode: statusCodeContext.HttpContext.Response.StatusCode)
-//                  .ExecuteAsync(statusCodeContext.HttpContext));
-// app.UseExceptionHandler(exceptoinAppHandler =>
-// {
-//     exceptoinAppHandler.Run(async context =>
-//     {
-//         var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-//         if (exceptionHandlerPathFeature?.Error is BadHttpRequestException)
-//         {
-//             context.Response.StatusCode = StatusCodes.Status400BadRequest;
-//         }
-//         await context.Response.CompleteAsync();
-//     });
-// });
 app.UseExceptionHandler(new ExceptionHandlerOptions
 {
     StatusCodeSelector = exception => exception switch
@@ -39,13 +29,6 @@ app.UseExceptionHandler(new ExceptionHandlerOptions
         _ => StatusCodes.Status500InternalServerError
     }
 });
-// app.UseStatusCodePages();
-// Configure exceptions
-// app.UseExceptionHandler(exceptionHandlerApp 
-//     => exceptionHandlerApp.Run(async context 
-//         => await Results.Problem()
-//                      .ExecuteAsync(context)));
-
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -74,7 +57,6 @@ app.MapGet("/weatherforecast", () =>
 })
 .WithName("GetWeatherForecast");
 
-// Controller.MapFeedEndpoints(app);
 app.MapFeedEndpoints();
 
 app.Run();

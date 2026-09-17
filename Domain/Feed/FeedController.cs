@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Api.Domain.Feed;
 
@@ -6,28 +7,71 @@ public static class Controller
 {
     public static WebApplication MapFeedEndpoints(this WebApplication app)
     {
+        var feedsApp = app.MapGroup("/feeds");
+
         // Get feeds
-        app.MapGet("/feed", () =>
-        {
-            return Enumerable.Range(1, 5).Select(index =>
+        feedsApp.MapGet("/", (AppContext db) =>
                 {
-                    return new FeedDto(
-                                    "Your RSS feed",
-                                    "https://localhost"
-                            );
-                })
-                .ToArray();
+                    var feeds = db.Feeds.Select(
+                            feed => new FeedDto(
+                                feed.Id,
+                                feed.Title,
+                                feed.Url
+                                )
+                            ).ToList();
+                    return feeds;
+                });
+
+        // Create a feed
+        feedsApp.MapPost("/", async (CreateFeedRequest input, AppContext db) =>
+        {
+            var feed = new Feed { Title = input.Title, Url = input.Url };
+            db.Feeds.Add(feed);
+            await db.SaveChangesAsync();
+
+            return TypedResults.Ok(
+                    new FeedDto(
+                        feed.Id,
+                        feed.Title,
+                        feed.Url
+                        ));
         });
 
-        app.MapGet("/feed/{id}", (
-            [Required(ErrorMessage = "Invalid id")] int id
-            ) =>
-        {
-                    return new FeedDto(
-                                    "Your RSS feed" + id,
-                                    "https://localhost"
-                            );
-        });
+        // Get single feed
+        feedsApp.MapGet("/{id}", async Task<Results<Ok<FeedDto>, NotFound>> ([Required(ErrorMessage = "Invalid id")] int id, AppContext db) =>
+                {
+                    var feed = await db.Feeds.FindAsync(id);
+
+                    if (feed is null) return TypedResults.NotFound();
+
+                    return TypedResults.Ok(
+                            new FeedDto(
+                                feed.Id,
+                                feed.Title,
+                                feed.Url
+                                ));
+                });
+
+        // Update single feed
+        feedsApp.MapPut("/{id}", async Task<Results<Ok<FeedDto>, NotFound>> ([Required(ErrorMessage = "Invalid id")] int id, UpdateFeedRequest input, AppContext db) =>
+                {
+                    var feed = await db.Feeds.FindAsync(id);
+
+                    if (feed is null) return TypedResults.NotFound();
+
+                    if (input.Url is not null) feed.Url = input.Url;
+                    if (input.Title is not null) feed.Title = input.Title;
+
+                    await db.SaveChangesAsync();
+
+                    return TypedResults.Ok(
+                            new FeedDto(
+                                feed.Id,
+                                feed.Title,
+                                feed.Url
+                                ));
+                });
+
 
         return app;
     }
