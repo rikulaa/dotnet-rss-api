@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Channels;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace Api.Domain.Feed;
@@ -23,11 +24,13 @@ public static class Controller
                 });
 
         // Create a feed
-        feedsApp.MapPost("/", async (CreateFeedRequest input, AppContext db) =>
+        feedsApp.MapPost("/", async (CreateFeedRequest input, AppContext db, Channel<int> queue) =>
         {
             var feed = new Feed { Title = input.Title, Url = input.Url };
             db.Feeds.Add(feed);
             await db.SaveChangesAsync();
+
+            await queue.Writer.WriteAsync(feed.Id);
 
             return TypedResults.Ok(
                     new FeedDto(
@@ -70,6 +73,19 @@ public static class Controller
                                 feed.Title,
                                 feed.Url
                                 ));
+                });
+
+        // Refresh feed
+        feedsApp.MapPut("/{id}/refresh", async Task<Results<NoContent, NotFound>> ([Required(ErrorMessage = "Invalid id")] int id, AppContext db, Channel<int> queue) =>
+                {
+                    var feed = await db.Feeds.FindAsync(id);
+
+                    if (feed is null) return TypedResults.NotFound();
+
+                    // Will refetch feed items
+                    await queue.Writer.WriteAsync(feed.Id);
+
+                    return TypedResults.NoContent();
                 });
 
 
