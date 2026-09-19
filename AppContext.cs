@@ -4,6 +4,7 @@ using Api.Domain.Feed;
 public class AppContext : DbContext
 {
     public DbSet<Feed> Feeds { get; set; }
+    public DbSet<Item> Items { get; set; }
 
     public string DbPath { get; }
 
@@ -16,4 +17,11 @@ public class AppContext : DbContext
     // special "local" folder for your platform.
     protected override void OnConfiguring(DbContextOptionsBuilder options)
         => options.UseSqlite($"Data Source={DbPath}");
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Item>()
+            .HasIndex(x => x.Guid)
+            .IsUnique();
+    }
 }
