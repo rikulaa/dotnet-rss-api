@@ -88,6 +88,19 @@ public static class Controller
                     return TypedResults.NoContent();
                 });
 
+        // Delete feed
+        feedsApp.MapDelete("/{id}", async Task<Results<NoContent, NotFound>> ([Required(ErrorMessage = "Invalid id")] int id, AppContext db) =>
+                {
+                    var feed = await db.Feeds.FindAsync(id);
+
+                    if (feed is null) return TypedResults.NotFound();
+
+                    db.Feeds.Remove(feed);
+                    await db.SaveChangesAsync();
+
+                    return TypedResults.NoContent();
+                });
+
 
         return app;
     }
