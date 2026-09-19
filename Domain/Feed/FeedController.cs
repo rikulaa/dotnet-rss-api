@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
 
 namespace Api.Domain.Feed;
+
 
 public static class Controller
 {
@@ -14,11 +16,7 @@ public static class Controller
         feedsApp.MapGet("/", (AppContext db) =>
                 {
                     var feeds = db.Feeds.Select(
-                            feed => new FeedDto(
-                                feed.Id,
-                                feed.Title,
-                                feed.Url
-                                )
+                            feed => feed.ToDto()
                             ).ToList();
                     return feeds;
                 });
@@ -32,27 +30,28 @@ public static class Controller
 
             await queue.Writer.WriteAsync(feed.Id);
 
-            return TypedResults.Ok(
-                    new FeedDto(
-                        feed.Id,
-                        feed.Title,
-                        feed.Url
-                        ));
+            return TypedResults.Ok(feed.ToDto());
         });
 
         // Get single feed
-        feedsApp.MapGet("/{id}", async Task<Results<Ok<FeedDto>, NotFound>> ([Required(ErrorMessage = "Invalid id")] int id, AppContext db) =>
+        feedsApp.MapGet("/{id}", async Task<Results<Ok<FeedDto>, NotFound>> (
+                    [Required(ErrorMessage = "Invalid id")] int id,
+                    Include? include,
+                    AppContext db
+                ) =>
                 {
-                    var feed = await db.Feeds.FindAsync(id);
+                    Console.WriteLine("includes: " + include?.Values);
+
+                    var q = db.Feeds.AsQueryable();
+                    if (include is not null && include.Values.Contains("item"))
+                    {
+                        q = q.Include(f => f.Items);
+                    }
+                    var feed = await q.FirstOrDefaultAsync(f => f.Id == id);
 
                     if (feed is null) return TypedResults.NotFound();
 
-                    return TypedResults.Ok(
-                            new FeedDto(
-                                feed.Id,
-                                feed.Title,
-                                feed.Url
-                                ));
+                    return TypedResults.Ok(feed.ToDto(include?.Values));
                 });
 
         // Update single feed
@@ -67,12 +66,7 @@ public static class Controller
 
                     await db.SaveChangesAsync();
 
-                    return TypedResults.Ok(
-                            new FeedDto(
-                                feed.Id,
-                                feed.Title,
-                                feed.Url
-                                ));
+                    return TypedResults.Ok(feed.ToDto());
                 });
 
         // Refresh feed
@@ -103,5 +97,26 @@ public static class Controller
 
 
         return app;
+    }
+}
+
+public class Include
+{
+    public required IEnumerable<string> Values;
+
+    public static bool TryParse(string? value, out Include? result)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            result = null;
+            return true;
+        }
+
+        var values = value
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .ToList();
+
+        result =  new Include{ Values = values };
+        return true;
     }
 }
