@@ -12,7 +12,8 @@ public static class FeedExtensions
     {
         return TransformFeed(feed, include);
     }
-    private static FeedDto TransformFeed(Feed feed, IEnumerable<string>? include) {
+    private static FeedDto TransformFeed(Feed feed, IEnumerable<string>? include)
+    {
         var includeItem = include?.Contains("item") == true;
 
         return new FeedDto(
@@ -25,6 +26,27 @@ public static class FeedExtensions
     }
 
     public static ItemDto toDto(this Item item)
+    {
+        return new ItemDto(
+                item.Id,
+                item.FeedId,
+                item.Guid,
+                item.Title,
+                item.Content,
+                item.Author,
+                item.Description
+                );
+    }
+}
+
+public static class ItemExtensions
+{
+    public static ItemDto ToDto(this Item item)
+    {
+        return TransformDto(item, Array.Empty<string>());
+    }
+
+    private static ItemDto TransformDto(Item item, IEnumerable<string>? include)
     {
         return new ItemDto(
                 item.Id,
