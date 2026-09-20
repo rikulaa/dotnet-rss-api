@@ -47,9 +47,9 @@ public class FetchFeedBackgroundJob(
                             {
                                 Guid = item.Id,
                                 Feed = feed,
-                                Title = item.Title.Text,
-                                Description = item.Summary.Text,
-                                Author = string.Join(",", item.Authors.Select(author => author.Name)),
+                                Title = item.Title?.Text,
+                                Description = item.Summary?.Text,
+                                Author = string.Join(",", values: item.Authors?.Select(author => author.Name) ?? []),
                                 Content = GetContent(item.Content),
                                 PublishedAt = item.PublishDate,
                             }
