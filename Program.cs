@@ -44,7 +44,7 @@ app.UseExceptionHandler(new ExceptionHandlerOptions
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.MapOpenApi(); // http://localhost:5089/openapi/v1.json
     app.MapScalarApiReference();
 }
 
