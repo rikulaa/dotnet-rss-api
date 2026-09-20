@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Ganss.Xss;
 
 namespace Api.Domain.Feed;
 
@@ -48,14 +49,17 @@ public static class ItemExtensions
 
     private static ItemDto TransformDto(Item item, IEnumerable<string>? include)
     {
+        var sanitizer = new HtmlSanitizer();
+        var safeDescription = item.Description is not null ? sanitizer.Sanitize(item.Description) : null;
+        var safeContent = item.Content is not null ? sanitizer.Sanitize(item.Content) : null;
         return new ItemDto(
                 item.Id,
                 item.FeedId,
                 item.Guid,
                 item.Title,
-                item.Content,
+                safeContent,
                 item.Author,
-                item.Description
+                safeDescription
                 );
     }
 }

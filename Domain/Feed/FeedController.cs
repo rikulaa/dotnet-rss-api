@@ -112,6 +112,7 @@ public static class Controller
                 .Skip(pagingData.Position)
                 .Take(pagingData.Size);
 
+            // TODO: include pagination info in response
             return TypedResults.Ok(items.Select(item => item.ToDto()));
         });
 
