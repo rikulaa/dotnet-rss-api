@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace Api.Domain.Feed;
@@ -100,7 +101,7 @@ public static class Controller
         // feedsApp.MapGet("/{id}/items", async Task<Results<Ok<FeedDto>, NotFound>> ([Required(ErrorMessage = "Invalid id")] int id, AppContext db) =>
         feedsApp.MapGet("/{id}/items", async Task<Results<Ok<IQueryable<ItemDto>>, NotFound>> (
                     [Required(ErrorMessage = "Invalid id")] int id,
-                    PagingData pagingData,
+                    [AsParameters] PagingData pagingData,
                     AppContext db
                 ) =>
         {
@@ -144,47 +145,16 @@ public class Include
 
 public class PagingData
 {
-    public string? SortBy { get; init; }
-    public SortDirection SortDirection { get; init; }
-    public int CurrentPage { get; init; } = 0;
 
+    [Range(1, int.MaxValue)]
+    [FromQuery(Name = "page[number]")]
+    public int Page { get; init; } = 1;
+
+    [Range(1, 100)]
+    [FromQuery(Name = "page[size]")]
     public int Size { get; init; } = 25;
-    public int Position { get; init; } = 0;
-
-    public static ValueTask<PagingData?> BindAsync(HttpContext context,
-                                                   ParameterInfo parameter)
-    {
-        const string sortByKey = "sortBy";
-        const string sortDirectionKey = "sortDir";
-        const string currentPageKey = "page[number]";
-        const string sizeKey = "page[size]";
-
-        Enum.TryParse<SortDirection>(context.Request.Query[sortDirectionKey],
-                                     ignoreCase: true, out var sortDirection);
-        int.TryParse(context.Request.Query[currentPageKey], out var page);
-        page = page == 0 ? 1 : page;
-        int.TryParse(context.Request.Query[sizeKey], out var size);
-        size = size > 0 && size < 100 ? size : 25;
-
-        var position = page > 1 ? size * page : 0;
-
-
-        var result = new PagingData
-        {
-            SortBy = context.Request.Query[sortByKey],
-            SortDirection = sortDirection,
-            CurrentPage = page,
-            Size = size,
-            Position = position
-        };
-
-        return ValueTask.FromResult<PagingData?>(result);
-    }
-}
-
-public enum SortDirection
-{
-    Default,
-    Asc,
-    Desc
+    
+    // For EF
+    public int Position =>
+        (Page - 1) * Size;
 }
