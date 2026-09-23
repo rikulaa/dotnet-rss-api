@@ -3,11 +3,13 @@ namespace Api.Domain.Feed;
 using System.Xml;
 using System.ServiceModel.Syndication;
 using Microsoft.EntityFrameworkCore;
-
+using System.Net.Http.Headers;
+using System.Net;
 
 public class FetchFeedJob(
         AppContext appContext,
-        ILogger<FetchFeedJob> logger
+        ILogger<FetchFeedJob> logger,
+        HttpClient httpClient
 )
 
 {
@@ -26,33 +28,76 @@ public class FetchFeedJob(
             }
 
             logger.LogInformation($"Fetch from url: {feed.Url}");
-            var reader = XmlReader.Create(feed.Url);
-            var feedContent = SyndicationFeed.Load(reader);
 
-            var items = feedContent.Items
-                .Select(item =>
-                        new Item
-                        {
-                            Guid = item.Id,
-                            Feed = feed,
-                            Title = item.Title?.Text,
-                            Description = item.Summary?.Text,
-                            Author = string.Join(",", values: item.Authors?.Select(author => author.Name) ?? []),
-                            Content = GetContent(item.Content),
-                            PublishedAt = item.PublishDate,
-                        }
-                       );
+            var request = new HttpRequestMessage(HttpMethod.Get, feed.Url);
+            // Add a correct user agent
+            request.Headers.UserAgent.Add(new ProductInfoHeaderValue("RssReader", "0.1"));
 
-            var guids = items.Select(item => item.Guid);
+            // Add caching headers
+            if (feed.ETag is not null)
+            {
+                // etag -> if none match
+                request.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(feed.ETag));
+            }
 
-            var existingGuids = await appContext.Items
-                .Where(item => guids.Contains(item.Guid))
-                .Select(item => item.Guid)
-                .ToHashSetAsync();
+            var lastModified = feed.LastModified ?? feed.LastFetchedAt;
+            if (lastModified is not null)
+            {
+                request.Headers.IfModifiedSince = lastModified;
+            }
 
-            var newItems = items.Where(item => !existingGuids.Contains(item.Guid));
+            logger.LogInformation($"Request headers: {request.Headers}");
 
-            appContext.AddRange(newItems);
+            // last-modified -> if modififed since
+            var response = await httpClient.SendAsync(request, cancellationToken);
+            logger.LogInformation($"Response status: {response.StatusCode} {feed.Url}");
+
+            // No new content, skip updates
+            if (response.StatusCode == HttpStatusCode.NotFound) {
+                logger.LogInformation($"No need content from: {feed.Url}");
+                feed.LastFetchedAt = DateTimeOffset.UtcNow;
+                await appContext.SaveChangesAsync();
+                return true;
+            }
+
+            feed.ETag = response.Headers.ETag?.ToString();
+            feed.LastModified = response.Content.Headers.LastModified;
+            feed.LastFetchedAt = DateTimeOffset.UtcNow;
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsStreamAsync();
+
+                var reader = XmlReader.Create(content);
+                var feedContent = SyndicationFeed.Load(reader);
+
+
+                var items = feedContent.Items
+                    .Select(item =>
+                            new Item
+                            {
+                                Guid = item.Id,
+                                Feed = feed,
+                                Title = item.Title?.Text,
+                                Description = item.Summary?.Text,
+                                Author = string.Join(",", values: item.Authors?.Select(author => author.Name) ?? []),
+                                Content = GetContent(item.Content),
+                                PublishedAt = item.PublishDate,
+                            }
+                           );
+
+                var guids = items.Select(item => item.Guid);
+
+                var existingGuids = await appContext.Items
+                    .Where(item => guids.Contains(item.Guid))
+                    .Select(item => item.Guid)
+                    .ToHashSetAsync();
+
+                var newItems = items.Where(item => !existingGuids.Contains(item.Guid));
+
+                appContext.AddRange(newItems);
+            }
+
             await appContext.SaveChangesAsync();
             return true;
 
