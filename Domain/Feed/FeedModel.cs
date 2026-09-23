@@ -6,6 +6,12 @@ public class Feed
     public required string Title { get; set; }
     public required string Url { get; set; }
 
+    // Response headers for cache control
+    public string? ETag { get; set; }
+    public DateTimeOffset? LastModified { get; set; }
+
+    public DateTimeOffset? LastFetchedAt { get; set; }
+
     public ICollection<Item> Items { get; set; } = [];
 }
 
