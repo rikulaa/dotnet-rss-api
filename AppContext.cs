@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Api.Domain.Feed;
-using Microsoft.EntityFrameworkCore.Diagnostics;
+// using Microsoft.EntityFrameworkCore.Diagnostics;
 
 public class AppContext : DbContext
 {
@@ -20,7 +20,7 @@ public class AppContext : DbContext
     {
         options.UseSqlite($"Data Source={DbPath}");
         // Only sql commands executed
-        options.LogTo(Console.WriteLine, (eventId, logLevel) => eventId == RelationalEventId.CommandExecuted);
+        // options.LogTo(Console.WriteLine, (eventId, logLevel) => eventId == RelationalEventId.CommandExecuted);
     } 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
