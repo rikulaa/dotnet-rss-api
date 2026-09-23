@@ -75,7 +75,6 @@ app.MapGet("/example-feed", () =>
             <title>My Blog Feed</title>
             <link>http://someuri/</link>
             <description>Basic example to produce a RSS feed</description>
-            <managingEditor>info@improveandrepeat.com</managingEditor>
             <lastBuildDate>Sat, 3 May 2025 16:01:46 +0100</lastBuildDate>
             <category>.Net</category>
 

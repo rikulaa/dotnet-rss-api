@@ -41,8 +41,6 @@ public static class Controller
                     AppContext db
                 ) =>
                 {
-                    Console.WriteLine("includes: " + include?.Values);
-
                     var q = db.Feeds.AsQueryable();
                     if (include is not null && include.Values.Contains("item"))
                     {

@@ -30,13 +30,13 @@ public class FetchFeedJob(
             logger.LogInformation($"Fetch from url: {feed.Url}");
 
             var request = new HttpRequestMessage(HttpMethod.Get, feed.Url);
-            // Add a correct user agent
+            // Add a bit better user agent
             request.Headers.UserAgent.Add(new ProductInfoHeaderValue("RssReader", "0.1"));
 
             // Add caching headers
             if (feed.ETag is not null)
             {
-                // etag -> if none match
+                // If the previous response provided us with ETag value use it in 'If-None-match'
                 if (EntityTagHeaderValue.TryParse(feed.ETag, out var parsedTag)) {
                     request.Headers.IfNoneMatch.Add(parsedTag);
                 }
@@ -50,7 +50,6 @@ public class FetchFeedJob(
 
             logger.LogInformation($"Request headers: {request.Headers}");
 
-            // last-modified -> if modififed since
             var response = await httpClient.SendAsync(request, cancellationToken);
             logger.LogInformation($"Response status: {response.StatusCode} {feed.Url}");
 
