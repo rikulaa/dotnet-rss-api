@@ -26,7 +26,7 @@ public class AppContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Item>()
-            .HasIndex(x => x.Guid)
+            .HasIndex(x => new { x.Id, x.Guid })
             .IsUnique();
     }
 }

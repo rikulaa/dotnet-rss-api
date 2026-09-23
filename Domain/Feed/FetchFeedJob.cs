@@ -88,7 +88,10 @@ public class FetchFeedJob(
 
                 var guids = items.Select(item => item.Guid);
 
-                var existingGuids = await appContext.Items
+                // Existing items inside the current feed
+                var existingGuids = await appContext.Entry(feed)
+                    .Collection(feed => feed.Items)
+                    .Query()
                     .Where(item => guids.Contains(item.Guid))
                     .Select(item => item.Guid)
                     .ToHashSetAsync();
