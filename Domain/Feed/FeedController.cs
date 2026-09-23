@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Reflection;
 using System.Threading.Channels;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -98,7 +97,6 @@ public static class Controller
                 });
 
         // Items
-        // feedsApp.MapGet("/{id}/items", async Task<Results<Ok<FeedDto>, NotFound>> ([Required(ErrorMessage = "Invalid id")] int id, AppContext db) =>
         feedsApp.MapGet("/{id}/items", async Task<Results<Ok<IQueryable<ItemDto>>, NotFound>> (
                     [Required(ErrorMessage = "Invalid id")] int id,
                     [AsParameters] PagingData pagingData,
@@ -109,6 +107,7 @@ public static class Controller
             if (feed is null) TypedResults.NotFound();
 
             var items = db.Items
+                .OrderByDescending(item => item.Id)
                 .Where(item => item.FeedId == id)
                 .Skip(pagingData.Position)
                 .Take(pagingData.Size);
