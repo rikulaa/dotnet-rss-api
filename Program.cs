@@ -23,6 +23,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<AppContext>();
 
 builder.Services.AddHostedService<FeedQueueProcessor>();
+builder.Services.AddScoped<FetchFeedJob>();
 
 if (builder.Environment.IsDevelopment())
 {
