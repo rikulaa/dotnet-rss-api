@@ -37,7 +37,9 @@ public class FetchFeedJob(
             if (feed.ETag is not null)
             {
                 // etag -> if none match
-                request.Headers.IfNoneMatch.Add(new EntityTagHeaderValue(feed.ETag));
+                if (EntityTagHeaderValue.TryParse(feed.ETag, out var parsedTag)) {
+                    request.Headers.IfNoneMatch.Add(parsedTag);
+                }
             }
 
             var lastModified = feed.LastModified ?? feed.LastFetchedAt;
