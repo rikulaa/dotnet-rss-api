@@ -22,7 +22,20 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddDbContext<AppContext>();
 
-builder.Services.AddHostedService<FetchFeedBackgroundJob>();
+builder.Services.AddHostedService<FeedQueueProcessor>();
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddCors((options) =>
+    {
+        options.AddPolicy("Development", (policy) =>
+        {
+            policy
+                .WithOrigins("http://localhost:3000");
+        });
+    });
+
+}
 
 var feedQueue = Channel.CreateUnbounded<int>();
 builder.Services.AddSingleton(feedQueue);
@@ -46,6 +59,7 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi(); // http://localhost:5089/openapi/v1.json
     app.MapScalarApiReference();
+    app.UseCors("Development");
 }
 
 app.UseHttpsRedirection();

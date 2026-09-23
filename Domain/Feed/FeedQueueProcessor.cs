@@ -5,9 +5,9 @@ using System.Xml;
 
 namespace Api.Domain.Feed;
 
-public class FetchFeedBackgroundJob(
+public class FeedQueueProcessor(
         IServiceScopeFactory serviceScopeFactory,
-        ILogger<FetchFeedBackgroundJob> logger,
+        ILogger<FeedQueueProcessor> logger,
         Channel<int> feedQueue
         ) : BackgroundService
 {
